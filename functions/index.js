@@ -19,12 +19,13 @@ var dbref = admin.firestore();
 exports.helloWorld = functions.https.onRequest((request, response) => {
  response.send("Hello from Firebase!");
 });
-
+// updated
 exports.addPatient = functions.https.onRequest((req,res)=>{
     if(req.method === 'POST')
     {
         let data = req.body;
-        dbref.collection('patient-data').add(req.body)
+
+        dbref.collection('doctor-data').doc(data['id']).collection('Patients').add(data['data'])
         .then(retdata =>{
             res.json({
                 message: "Patient added to the database",
@@ -41,11 +42,34 @@ exports.addPatient = functions.https.onRequest((req,res)=>{
 })
 
 
+// updated json response
+exports.addDoctorID = functions.https.onRequest((req, res)=>{
+    if(req.method === 'POST'){
+        let data = req.body
+        dbref.collection('doctor-data').doc(data['id']).set(data['data'])
+        .then(retdata =>{
+            res.json({
+                message: "Doctor ID added to the database",
+                retdata: retdata.id
+            })
+            return null;
+        })
+        .catch(err =>{
+            res.json({
+                err
+            })
+        })
+    }
+})
+
+/*
 exports.addDoctor = functions.https.onRequest((req,res)=>{
     if(req.method === 'POST')
     {
         let data = req.body;
-        dbref.collection('doctor-data').add(req.body)
+        console.log(data)
+        //let jsonData = JSON.parse(data)
+        dbref.collection('doctor-data').doc(data.id).set(data.data)
         .then(retdata =>{
             res.json({
                 message: "Doctor added to the database",
@@ -59,12 +83,15 @@ exports.addDoctor = functions.https.onRequest((req,res)=>{
             })
         })
     }
-})
+})*/
 
+
+// updated
 exports.allPatients = functions.https.onRequest((req,res)=>{
-    if(req.method === 'GET')
+    if(req.method === 'POST')
     {
-        dbref.collection('patient-data').get()
+        let data = req.body
+        dbref.collection('doctor-data').doc(data['id']).collection('Patients').get()
         .then(snapshot =>{
             var data = []
             snapshot.forEach(doc=>{
@@ -78,6 +105,12 @@ exports.allPatients = functions.https.onRequest((req,res)=>{
                 err
             })
         })
+    }
+})
+
+exports.sendOK = functions.https.onRequest((req, res)=>{
+    if(req.method === 'POST'){
+        res.message('OK')
     }
 })
 
@@ -101,15 +134,160 @@ exports.allDoctors = functions.https.onRequest((req,res)=>{
     }
 })
 
-exports.searchPatient = functions.https.onRequest((req,res)=>{
+exports.addPrescription = functions.https.onRequest((req,res)=>{
     if(req.method === 'POST')
     {
-        dbref.collection('patient-data').doc(req.body.tobeRetrived).get()
+        let data = req.body
+        dbref.collection('doctor-data').doc(data['docID']).collection('Patients').doc(data['patID']).collection('Prescriptions').add(data['data'])
+        .then(retdata =>{
+            res.json({
+                message: "Prescription added to the database",
+                retdata: retdata.id
+            })
+            return null;
+        })
+        .catch(err =>{
+            res.json({
+                err
+            })
+        })
+    }
+})
+
+exports.fetchDoctorData = functions.https.onRequest((req, res)=>{
+    if(req.method === 'POST'){
+        let data = req.body
+        dbref.collection('doctor-data').doc(data['docID']).get()
+        .then(doc =>{
+            res.json({
+                message: "Success",
+                retdata: doc.data()
+            })
+            return null
+        })
+        .catch(err =>{
+            res.json({
+                err
+            })
+        })
+    }
+})
+
+exports.fetchPatientData = functions.https.onRequest((req, res)=>{
+    if(req.method === 'POST'){
+        let data = req.body
+        dbref.collection('doctor-data').doc(data['docID']).collection('Patients').doc(data['patID']).get()
+        .then(doc =>{
+            res.json({
+                message: "Success",
+                retdata: doc.data()
+            })
+            return null
+        })
+        .catch(err =>{
+            res.json({
+                err
+            })
+        })
+    }
+})
+
+exports.fetchPres = functions.https.onRequest((req, res)=>{
+    if(req.method === 'POST'){
+        let data = req.body
+        dbref.collection('doctor-data').doc(data['docID']).collection('Patients').doc(data['patID']).collection('Prescriptions').doc(data['presID']).get()
+        .then(doc =>{
+            res.json({
+                message: "Success",
+                retdata: doc.data()
+            })
+            return null
+        })
+        .catch(err =>{
+            res.json({
+                err
+            })
+        })
+    }
+})
+
+exports.fetchPrescription = functions.https.onRequest((req,res)=>{
+    if(req.method === 'POST')
+    {
+        let data = req.body
+        let prescription = []
+        dbref.collection('doctor-data').doc(data['docID']).get()
+        .then(doc =>{
+            prescription.push(doc.data())
+            return null
+        })
+        .catch(err =>{
+            res.json({
+                err
+            })
+        })
+        dbref.collection('doctor-data').doc(data['docID']).collection('Patients').doc(data['patID']).collection('Prescriptions').doc(data['presID']).get()
+        .then(doc =>{
+            prescription.push(doc.data())
+            return null;
+        })
+        .catch(err =>{
+            res.json({
+                err
+            })
+        })
+        dbref.collection('doctor-data').doc(data['docID']).collection('Patients').doc(data['patID']).collection('Prescriptions').doc(data['presID']).get()
+        .then(doc =>{
+            prescription.push(doc.data())
+            res.json({
+                message: "Prescription fetched",
+                retdata: prescription
+            })
+            return null;
+        })
+        .catch(err =>{
+            res.json({
+                err
+            })
+        })
+    }
+})
+
+exports.sendPrescription = functions.https.onRequest((req,res)=>{
+
+    if(req.method === 'POST')
+    {
+        let data = req.body
+        let pres = data['presID']
+        let prescription = []
+        dbref.collectionGroup('Prescriptions').where('id', '==', pres).get()
+        .then(doc =>{
+            prescription.push(doc.data())
+            res.json({
+                message: "Prescription fetched",
+                retdata: prescription
+            })
+            return null
+        })
+        .catch(err =>{
+            res.json({
+                err
+            })
+        })
+    }
+
+})
+
+
+exports.searchPres = functions.https.onRequest((req,res)=>{
+    if(req.method === 'POST')
+    {
+        dbref.collection('doctor-data').doc(data['docID']).collection('Patients').doc(data['patID']).collection('Prescriptions').doc(data['presID']).get()
         .then(doc=>{
             if(!doc.exists)
             {
                 res.json({
-                    message : "The requested data isn't available"
+                    message : false
                 })
             }
             else
@@ -117,7 +295,7 @@ exports.searchPatient = functions.https.onRequest((req,res)=>{
                 let data = doc.data();
                 let id = doc.id;
                 res.json({
-                    message : "Retrival succes",
+                    message : true,
                     id,
                     data
                 })
